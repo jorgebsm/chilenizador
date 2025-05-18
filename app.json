@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "HablaiChileno",
-    "slug": "HablaiChileno",
+    "name": "chilenizador",
+    "slug": "chilenizador",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,10 +20,25 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.douapps.chilenizador"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-8096470331985565~4253110746"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "39b0a417-30b1-414f-965d-9f7515c3da63"
+      }
     }
   }
 }
