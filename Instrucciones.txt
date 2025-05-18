@@ -62,6 +62,7 @@ Pasar: local.properties a > /android
 # Para probar localmente:
 - Generarmos Prebuild:
 - npx expo prebuild --clean
+- Pegamos el local.properties
 - npx expo run:android
 
 # Para generar el APK:

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Platform,
   Image,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -19,10 +18,8 @@ import {
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { traducirAlChileno } from './services/openai';
 import { Keyboard } from 'react-native';
-// import * as Sharing from 'expo-sharing';
 import { Share } from 'react-native';
 import { ActivityIndicator } from 'react-native';
-import AdBanner from './components/AdBanner';
 import {
   InterstitialAd,
   AdEventType,
@@ -82,7 +79,7 @@ export default function App() {
 
   const manejarTraduccion = async () => {
 
-    if (clicks + 1 >= 8 && isAdLoaded) {
+    if (clicks + 1 >= 1000 && isAdLoaded) {
       interstitial.show();
       setClicks(0);
       setIsAdLoaded(false); // para evitar mostrarlo otra vez sin cargar
@@ -102,12 +99,21 @@ export default function App() {
       }
 
       let resultado = rawResultado.trim();
-      if (
-        (resultado.startsWith('"') && resultado.endsWith('"')) ||
-        (resultado.startsWith('“') && resultado.endsWith('”'))
-      ) {
-        resultado = resultado.slice(1, -1).trim();
-      }
+
+      // Solo remover si TODO el texto comienza y termina con comillas Y no hay otras comillas adentro
+      const quitarComillasSiCorresponde = (texto) => {
+        const esComillaNormal = texto.startsWith('"') && texto.endsWith('"');
+        const esComillaTipografica = texto.startsWith('“') && texto.endsWith('”');
+        const tieneMasComillasInternas =
+          texto.slice(1, -1).includes('"') || texto.slice(1, -1).includes('“') || texto.slice(1, -1).includes('”');
+
+        if ((esComillaNormal || esComillaTipografica) && !tieneMasComillasInternas) {
+          return texto.slice(1, -1).trim();
+        }
+        return texto;
+      };
+
+      resultado = quitarComillasSiCorresponde(resultado);
 
       setTraduccion(resultado);
     } catch (err) {
@@ -130,7 +136,7 @@ export default function App() {
 
   const compartirApp = async () => {
     await Share.share({
-      message: '¡Descarga Chilenizador y habla de pana! 🇨🇱\nhttps://chilenizadorapp.cl',
+      message: '¡Descarga Chilenizador y habla de pana! 🇨🇱\nhttps://play.google.com/store/apps/details?id=com.douapps.chilenizador',
     });
   };
 
@@ -144,7 +150,7 @@ export default function App() {
         <View style={styles.container}>
           <View style={styles.header}>
             <Image
-              source={require('./assets/bandera.png')} // usa tu imagen aquí
+              source={require('./assets/original_png.png')} // usa tu imagen aquí
               style={styles.logoHeader}
               resizeMode="contain"
             />
@@ -173,7 +179,7 @@ export default function App() {
                 { key: 'progre', label: 'Progre 🟪' },
                 { key: 'pokemon', label: 'Pokemón 🎧' },
                 { key: 'lolo', label: 'Lolo 🧢' },
-                { key: 'funado', label: 'Funado 🧨' },
+                { key: 'infunable', label: 'Infunable 🧨' },
                 { key: 'poeta', label: 'Poeta 🎤' },
               ].map((item) => (
                 <TouchableOpacity
@@ -206,6 +212,7 @@ export default function App() {
                 onChangeText={setTextoOriginal}
                 textAlignVertical="top"
                 placeholderTextColor="#9CA3AF"
+                maxLength={500}
               />
               {(textoOriginal.length > 0) && (
                 <View style={styles.iconosInput}>
@@ -227,7 +234,6 @@ export default function App() {
             <View style={[styles.card, styles.cardResultado]}>
               {cargando ? (
                   <View style={styles.placeholderContainer}>
-                    {/* <Text style={styles.resultadoTexto}>Traduciendo...</Text> */}
                     <ActivityIndicator size="large" color="#0b1e52" />
                   </View>
                 ) : traduccion ? (
@@ -277,17 +283,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: '#0b1e52', //0b1e52
-    paddingVertical: 20,
+    backgroundColor: '#0b1e52',
+    height: 70,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'relative',
   },
   headerText: {
     color: '#FFFFFF',
     fontSize: 22,
     fontFamily: 'PoppinsBold',
     top: 1,
+    marginLeft: 64, 
+  },
+   logoHeader: {
+    width: 60,
+    height: 60,
+    position: 'absolute',
+    left: 14,
+    top: '60%',
+    transform: [{ translateY: -40 }],
   },
   body: {
     padding: 20,
@@ -409,11 +425,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'PoppinsBold',
   },
-  logoHeader: {
-    width: 34,
-    height: 34,
-    marginRight: 10,
-  },
+ 
 
 
 });

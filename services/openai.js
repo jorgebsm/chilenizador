@@ -26,13 +26,13 @@ export const traducirAlChileno = async (frase, modo = 'normal') => {
         estilo = 'como un poeta urbano chileno, con rimas y metáforas';
         break;
       case 'borracho':
-        estilo = 'como un chileno borracho hablando arrastrado, desinhibido y medio incoherente';
+        estilo = 'como un chileno muy borracho hablando arrastrado, desinhibido y medio incoherente';
         break;
       case 'abuelo':
         estilo = 'como un abuelito chileno, usando frases antiguas como mijo, dichos típicos y sabiduría popular';
         break;
-      case 'funado':
-        estilo = 'como un chileno con tono irónico, sarcástico y políticamente incorrecto, como alguien que ya fue funado';
+      case 'infunable':
+        estilo = 'como un chileno con tono irónico, sarcástico y políticamente incorrecto, como alguien que no tiene miedo a la funa';
         break;
       case 'metalero':
         estilo = 'con lenguaje oscuro, dramático, existencialista y con energía intensa, como un metalero chileno';
@@ -47,7 +47,7 @@ export const traducirAlChileno = async (frase, modo = 'normal') => {
         estilo = 'como un adolescente de los años 2000 en Chile, con mezcla de ternura dark y jerga pokemona';
         break;
       case 'progre':
-        estilo = 'con lenguaje inclusivo, progresista, reflexivo y cargado de conciencia social chilena actual';
+        estilo = 'con lenguaje inclusivo, progresista, reflexivo y cargado de conciencia social chilena actual, como si fuera ñuñoino';
         break;
       case 'lolo':
         estilo = 'como un tiktoker o lolo chileno actual, usando modismos juveniles, anglicismos y energía de redes';
@@ -65,7 +65,7 @@ export const traducirAlChileno = async (frase, modo = 'normal') => {
     const res = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        // model: 'gpt-3.5-turbo',
+        //model: 'gpt-3.5-turbo',
         model: 'gpt-4o',
         messages: [
           {
