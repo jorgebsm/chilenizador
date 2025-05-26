@@ -14,6 +14,11 @@ npx expo start --dev-client
 #COMPILAR APK:
 eas build -p android --profile preview
 
+#COMPILAR AAB:
+En el eas.json:
+    - "buildType": "app-bundle"
+eas build -p android --profile production
+
 #Obtener credenciales, SHA1
 expo credentials:manager -p android
 eas credentials
@@ -63,9 +68,15 @@ Pasar: local.properties a > /android
 - Generarmos Prebuild:
 - npx expo prebuild --clean
 - Pegamos el local.properties
+- Desinstalamos la app del celu (recordatorio*) y ambos 2 al mismo wifi
 - npx expo run:android
 
 # Para generar el APK:
 - Eliminamos /android
 - eas build -p android --profile preview
+- eas build -p android --profile production
 -----------------------------------------------------------------------------------
+
+Modelos de GPT:
+// model: 'gpt-3.5-turbo',
+// model: 'gpt-4o',

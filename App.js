@@ -27,6 +27,10 @@ import {
 } from 'react-native-google-mobile-ads';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { configManager, obtenerValorConfig } from './services/configManager';
+import { Linking, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const interstitial = InterstitialAd.createForAdRequest(
   //TestIds.INTERSTITIAL, // Reemplazar por tu ID real en producción
@@ -35,6 +39,27 @@ const interstitial = InterstitialAd.createForAdRequest(
     requestNonPersonalizedAdsOnly: true,
   }
 );
+
+const modos = [
+  { key: 'normal', label: 'Normal 🇨🇱' },
+  { key: 'grosero', label: 'Grosero 🤬' },
+  { key: 'flaite', label: 'Flaite 🧢' },
+  { key: 'cuico zorrón', label: 'Cuico 💅' },
+  { key: 'huaso', label: 'Huaso 🤠' },
+  { key: 'borracho', label: 'Borracho 🍻' },
+  { key: 'abuelo', label: 'Abuelo 👴' },
+  { key: 'mami', label: 'Mami 🤱' },
+  { key: 'metalero', label: 'Metalero 🤘' },
+  { key: 'hincha', label: 'Hincha ⚽' },
+  { key: 'republicano', label: 'Republicano 🧔🏻' },
+  { key: 'progre', label: 'Progre 🟪' },
+  { key: 'pokemon', label: 'Pokemón 🎧' },
+  { key: 'lolo', label: 'Lolo 🧢' },
+  { key: 'infunable', label: 'Infunable 🤫' },
+  { key: 'poeta', label: 'Poeta ✍️' },
+  { key: 'gamer', label: 'Gamer 🎮' },
+  { key: 'otaku', label: 'Otaku 🍥' }
+];
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,6 +70,8 @@ export default function App() {
   const [cargando, setCargando] = useState(false);
   const [clicks, setClicks] = useState(0);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const [numClicksParaAnuncio, setNumClicksParaAnuncio] = useState(5);
+  const CLICKS_KEY = "@ads_clicks";
 
   const [fontsLoaded] = useFonts({
     PoppinsRegular: Poppins_400Regular,
@@ -52,22 +79,51 @@ export default function App() {
   });
 
   useEffect(() => {
-  const loadListener = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-    setIsAdLoaded(true);
-  });
+    const inicializarApp = async () => {
+      try {
+        await configManager();
+        const storedClicks = await AsyncStorage.getItem(CLICKS_KEY);
+        if (storedClicks !== null) {
+          // console.log("storedClicks "+ storedClicks);
+          
+          setClicks(parseInt(storedClicks));
+        }
 
-  const closeListener = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        const storedClicksToAd = await obtenerValorConfig("ads.numClicks", 5);
+        setNumClicksParaAnuncio(parseInt(storedClicksToAd) || 5);
+
+        if (fontsLoaded) {
+          await SplashScreen.hideAsync();
+        }
+      } catch (error) {
+        console.error("Error al inicializar app:", error);
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    inicializarApp(); 
+
+  }, [fontsLoaded]);
+
+
+
+  useEffect(() => {
+    const loadListener = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      setIsAdLoaded(true);
+    });
+
+    const closeListener = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      interstitial.load();
+      setIsAdLoaded(false);
+    });
+
     interstitial.load();
-    setIsAdLoaded(false);
-  });
 
-  interstitial.load();
-
-  return () => {
-    loadListener();
-    closeListener();
-  };
-}, []);
+    return () => {
+      loadListener();
+      closeListener();
+    };
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -78,50 +134,55 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   const manejarTraduccion = async () => {
+    const nuevoContador = clicks + 1;
 
-    if (clicks + 1 >= 1000 && isAdLoaded) {
-      interstitial.show();
-      setClicks(0);
-      setIsAdLoaded(false); // para evitar mostrarlo otra vez sin cargar
+    // console.log("nuevoContador " +nuevoContador );
+    // console.log("numClicksParaAnuncio "+ numClicksParaAnuncio);
+    // console.log("isAdLoaded "+ isAdLoaded);
+    
+
+    if (nuevoContador >= numClicksParaAnuncio) {
+      if (isAdLoaded) {
+        // console.log("✅ Anuncio mostrado");
+        interstitial.show();
+        setClicks(0);
+        await AsyncStorage.setItem(CLICKS_KEY, '0');
+        setIsAdLoaded(false);
+      } else {
+        // console.log("⚠️ Anuncio no cargado, se reinicia contador igual");
+        setClicks(0);
+        await AsyncStorage.setItem(CLICKS_KEY, '0');
+      }
     } else {
-      setClicks(clicks + 1);
+      // console.log("⏳ No aplica anuncio aún");
+      setClicks(nuevoContador);
+      await AsyncStorage.setItem(CLICKS_KEY, nuevoContador.toString());
     }
+
 
     if (!textoOriginal.trim()) return;
     Keyboard.dismiss();
+    setCargando(true);
 
-    // Procesar traducción normalmente
     try {
       const rawResultado = await traducirAlChileno(textoOriginal, modo);
-      if (!rawResultado || typeof rawResultado !== 'string') {
-        setTraduccion('Ups... no se pudo traducir');
-        return;
-      }
+      let resultado = typeof rawResultado === 'string' ? rawResultado.trim() : 'Ups... no se pudo traducir';
 
-      let resultado = rawResultado.trim();
-
-      // Solo remover si TODO el texto comienza y termina con comillas Y no hay otras comillas adentro
       const quitarComillasSiCorresponde = (texto) => {
         const esComillaNormal = texto.startsWith('"') && texto.endsWith('"');
         const esComillaTipografica = texto.startsWith('“') && texto.endsWith('”');
-        const tieneMasComillasInternas =
-          texto.slice(1, -1).includes('"') || texto.slice(1, -1).includes('“') || texto.slice(1, -1).includes('”');
-
-        if ((esComillaNormal || esComillaTipografica) && !tieneMasComillasInternas) {
-          return texto.slice(1, -1).trim();
-        }
-        return texto;
+        const tieneInternas = texto.slice(1, -1).includes('"') || texto.slice(1, -1).includes('“') || texto.slice(1, -1).includes('”');
+        return (esComillaNormal || esComillaTipografica) && !tieneInternas ? texto.slice(1, -1).trim() : texto;
       };
 
-      resultado = quitarComillasSiCorresponde(resultado);
-
-      setTraduccion(resultado);
+      setTraduccion(quitarComillasSiCorresponde(resultado));
     } catch (err) {
       setTraduccion('Hubo un error al traducir');
     } finally {
       setCargando(false);
     }
   };
+
 
 
 
@@ -139,6 +200,24 @@ export default function App() {
       message: '¡Descarga Chilenizador y habla de pana! 🇨🇱\nhttps://play.google.com/store/apps/details?id=com.douapps.chilenizador',
     });
   };
+
+  const calificarApp = async () => {
+    const url = Platform.OS === 'android'
+      ? 'market://details?id=com.douapps.chilenizador'
+      : 'https://play.google.com/store/apps/details?id=com.douapps.chilenizador';
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        console.warn('No se puede abrir el enlace de calificación');
+      }
+    } catch (error) {
+      console.error('Error al abrir enlace de calificación:', error);
+    }
+  };
+
 
   
 
@@ -159,48 +238,59 @@ export default function App() {
 
           <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 100 }]} keyboardShouldPersistTaps="handled">
             <Text style={styles.label}>Escoge un modo</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.selectorModos}
-            >
-              {[
-                { key: 'normal', label: 'Normal 👍' },
-                { key: 'grosero', label: 'Grosero 🤬' },
-                { key: 'flaite', label: 'Flaite 🧢' },
-                { key: 'cuico zorrón', label: 'Cuico 💅' },
-                { key: 'huaso', label: 'Huaso 🤠' },
-                { key: 'borracho', label: 'Borracho 🍻' },
-                { key: 'abuelo', label: 'Abuelo 👴' },
-                { key: 'mami', label: 'Mami 🤱' },
-                { key: 'metalero', label: 'Metalero 🤘' },
-                { key: 'hincha', label: 'Hincha ⚽' },
-                { key: 'republicano', label: 'Republicano 🧔🏻' },
-                { key: 'progre', label: 'Progre 🟪' },
-                { key: 'pokemon', label: 'Pokemón 🎧' },
-                { key: 'lolo', label: 'Lolo 🧢' },
-                { key: 'infunable', label: 'Infunable 🧨' },
-                { key: 'poeta', label: 'Poeta 🎤' },
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.key}
-                  onPress={() => setModo(item.key)}
-                  style={[
-                    styles.botonModo,
-                    modo === item.key && styles.botonModoActivo,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.textoModo,
-                      modo === item.key && styles.textoModoActivo,
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.selectorModosContainer}
+              >
+                <View style={styles.selectorModos}>
+                  {/* Fila 1 */}
+                  <View style={styles.filaModos}>
+                    {modos.slice(0, Math.ceil(modos.length / 2)).map((item) => (
+                      <TouchableOpacity
+                        key={item.key}
+                        onPress={() => setModo(item.key)}
+                        style={[
+                          styles.botonModo,
+                          modo === item.key && styles.botonModoActivo,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.textoModo,
+                            modo === item.key && styles.textoModoActivo,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Fila 2 */}
+                  <View style={styles.filaModos}>
+                    {modos.slice(Math.ceil(modos.length / 2)).map((item) => (
+                      <TouchableOpacity
+                        key={item.key}
+                        onPress={() => setModo(item.key)}
+                        style={[
+                          styles.botonModo,
+                          modo === item.key && styles.botonModoActivo,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.textoModo,
+                            modo === item.key && styles.textoModoActivo,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
 
 
             <View style={styles.card}>
@@ -261,9 +351,22 @@ export default function App() {
           </ScrollView>
         </View>
 
-        <TouchableOpacity style={styles.fab} onPress={compartirApp}>
+        {/* <TouchableOpacity style={styles.fab} onPress={compartirApp}>
           <MaterialIcons name="share" size={28} color="#ffffff" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+
+        <View style={styles.fabContainer}>
+          <TouchableOpacity style={styles.fab} onPress={compartirApp}>
+            <MaterialIcons name="share" size={24} color="#ffffff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.fab, styles.fab2]} onPress={calificarApp}>
+            <MaterialIcons name="star-rate" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+
+
+        
 
         {/* <AdBanner /> */}
 
@@ -401,12 +504,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  selectorModos: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-    paddingRight: 10,
+  fab2: {
+    right: 85,
   },
+  // selectorModos: {
+  //   flexDirection: 'row',
+  //   flexWrap: 'wrap',
+  //   rowGap: 8, // espacio entre filas
+  //   columnGap: 10, // espacio entre columnas (puedes usar `gap` si tu versión de RN lo soporta)
+  //   maxHeight: 88, // altura estimada para 2 filas (ajusta según el tamaño de tus botones)
+  //   marginBottom: 16,
+  //   paddingRight: 10,
+  // },
   botonModo: {
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -422,9 +531,31 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   textoModoActivo: {
+    fontSize: 14,
     color: '#FFFFFF',
     fontFamily: 'PoppinsBold',
   },
+  selectorModosContainer: {
+    paddingRight: 20,   
+    marginBottom: 16
+  },
+  selectorModos: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  filaModos: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 10,
+    right: 0,
+    flexDirection: 'row',
+    gap: 12,
+  },
+
  
 
 

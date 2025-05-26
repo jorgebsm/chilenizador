@@ -11,6 +11,7 @@
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.3.1",
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "^1.24.0",
     "axios": "^1.9.0",
     "expo": "~53.0.9",
     "expo-clipboard": "~7.1.4",
@@ -19,6 +20,7 @@
     "expo-sharing": "~13.1.5",
     "expo-splash-screen": "~0.30.8",
     "expo-status-bar": "~2.2.3",
+    "firebase": "^11.8.1",
     "react": "19.0.0",
     "react-native": "0.79.2",
     "react-native-activity-indicator": "^0.0.4",

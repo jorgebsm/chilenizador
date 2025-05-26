@@ -1,9 +1,13 @@
 import axios from 'axios';
+import { obtenerValorConfig } from '../services/configManager';
+
 const API_KEY = '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';
 
 export const traducirAlChileno = async (frase, modo = 'normal') => {
   try {
-    
+    const modelo = await obtenerValorConfig('openAI.model', 'gpt-3.5-turbo');
+    const temperature = await obtenerValorConfig("openAI.temperature", 0.8);
+
     let estilo = '';
 
     switch (modo) {
@@ -55,25 +59,31 @@ export const traducirAlChileno = async (frase, modo = 'normal') => {
       case 'mami':
         estilo = 'como una mamá chilena que es enojona con sus hijos';
         break;
+      case 'gamer':
+        estilo = 'como un gamer chileno streameando en Twitch, con términos como "tryhard", "noob", "brígido", y reacciones exageradas tipo "ohhh ctm, qué wea!"';
+        break;
+      case 'otaku':
+        estilo = 'como un otaku chileno fanático del anime, mezclando japonés con modismos chilenos, diciendo cosas como "baka po wn", "kawaii la waifu", y frases exageradas como si estuviera en una pelea épica';
+        break;
       default:
         estilo = 'con modismos chilenos cotidianos, informal, relajado y divertido';
         break;
     }
 
-
-
     const res = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
         //model: 'gpt-3.5-turbo',
-        model: 'gpt-4o',
+        // model: 'gpt-4o',
+        model: modelo,
         messages: [
           {
             role: 'user',
-            content: `Traduce esta frase ${estilo}: "${frase}"`,
+            //content: `Traduce esta frase ${estilo}: "${frase}"`,
+            content: `Traduce ${estilo} esta frase: "${frase}"`,
           },
         ],
-        temperature: 0.8,
+        temperature: temperature,
       },
       {
         headers: {
