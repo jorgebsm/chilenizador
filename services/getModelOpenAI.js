@@ -9,7 +9,6 @@ export const getModelOpenAI = async () => {
 
     if (docSnap.exists()) {
       const modelo = docSnap.data().openAIModel;
-      console.log("🔥 Modelo leído desde Firebase:", modelo);
       return modelo || "gpt-3.5-turbo"; // fallback en caso de que no exista el campo
     } else {
       console.warn("📭 Documento 'model' no encontrado.");
