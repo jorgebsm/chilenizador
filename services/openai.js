@@ -1,101 +1,40 @@
 import axios from 'axios';
-import { obtenerValorConfig } from '../services/configManager';
 
-const API_KEY = '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';
+const BACKEND_URL = 'https://chilenizador-backend-production.up.railway.app/api/translate';
 
 export const traducirAlChileno = async (frase, modo = 'normal') => {
   try {
-    const modelo = await obtenerValorConfig('openAI.model', 'gpt-3.5-turbo');
-    const temperature = await obtenerValorConfig("openAI.temperature", 0.8);
-
-    let estilo = '';
-
-    switch (modo) {
-      case 'normal':
-        estilo = 'con modismos chilenos cotidianos, informal, relajado y divertido';
-        break;
-      case 'grosero':
-        estilo = 'como un chileno flaite diciendo muchas groserías y garabatos, que sea divertido';
-        break;
-      case 'flaite':
-        estilo = 'en modo flaite extremo, usando jerga callejera chilena';
-        break;
-      case 'cuico zorrón':
-        estilo = 'como un cuico zorrón de clase alta chilena, usando modismos cuicos y exagerando su tono refinado';
-        break;
-      case 'huaso':
-        estilo = 'como un huaso chileno del campo, con dichos rurales del sur';
-        break;
-      case 'poeta':
-        estilo = 'como un poeta urbano chileno, con rimas y metáforas';
-        break;
-      case 'borracho':
-        estilo = 'como un chileno muy borracho hablando arrastrado, desinhibido y medio incoherente';
-        break;
-      case 'abuelo':
-        estilo = 'como un abuelito chileno, usando frases antiguas como mijo, dichos típicos y sabiduría popular';
-        break;
-      case 'infunable':
-        estilo = 'como un chileno con tono irónico, sarcástico y políticamente incorrecto, como alguien que no tiene miedo a la funa';
-        break;
-      case 'metalero':
-        estilo = 'con lenguaje oscuro, dramático, existencialista y con energía intensa, como un metalero chileno';
-        break;
-      case 'hincha':
-        estilo = 'como un hincha apasionado del fútbol chileno, con emoción, garabatos y frases futboleras';
-        break;
-      case 'republicano':
-        estilo = 'de forma muy formal, moralista, patriótica y conservadora, como un político de derecha chileno';
-        break;
-      case 'pokemon':
-        estilo = 'como un adolescente de los años 2000 en Chile, con mezcla de ternura dark y jerga pokemona';
-        break;
-      case 'progre':
-        estilo = 'con lenguaje inclusivo, progresista, reflexivo y cargado de conciencia social chilena actual, como si fuera ñuñoino';
-        break;
-      case 'lolo':
-        estilo = 'como un tiktoker o lolo chileno actual, usando modismos juveniles, anglicismos y energía de redes';
-        break;
-      case 'mami':
-        estilo = 'como una mamá chilena que es enojona con sus hijos';
-        break;
-      case 'gamer':
-        estilo = 'como un gamer chileno streameando en Twitch, con términos como "tryhard", "noob", "brígido", y reacciones exageradas tipo "ohhh ctm, qué wea!"';
-        break;
-      case 'otaku':
-        estilo = 'como un otaku chileno fanático del anime, mezclando japonés con modismos chilenos, diciendo cosas como "baka po wn", "kawaii la waifu", y frases exageradas como si estuviera en una pelea épica';
-        break;
-      default:
-        estilo = 'con modismos chilenos cotidianos, informal, relajado y divertido';
-        break;
-    }
-
     const res = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
+      BACKEND_URL,
       {
-        //model: 'gpt-3.5-turbo',
-        // model: 'gpt-4o',
-        model: modelo,
-        messages: [
-          {
-            role: 'user',
-            //content: `Traduce esta frase ${estilo}: "${frase}"`,
-            content: `Traduce ${estilo} esta frase: "${frase}"`,
-          },
-        ],
-        temperature: temperature,
+        frase,
+        modo,
       },
       {
         headers: {
-          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 segundos de timeout
       }
     );
 
-    return res.data.choices[0].message.content.trim();
+    // El backend retornará { traduccion, modo, modelo }
+    return res.data.traduccion;
   } catch (error) {
     console.error('Error al traducir:', error.response?.data || error.message);
-    return 'Ups... no pude chilenizar eso ahora.';
+
+    if (error.code === 'ECONNABORTED') {
+      return 'La traducción está tardando mucho. Intenta de nuevo.';
+    }
+
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      return 'No se puede traducir en este momento. Intenta de nuevo.';
+    }
+
+    if (error.response?.status === 429) {
+      return 'No se puede traducir en este momento. Intenta de nuevo.';
+    }
+
+    return error.response?.data?.error || 'Ups... no pude chilenizar eso ahora.';
   }
 };
